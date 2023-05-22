@@ -20,3 +20,4 @@ cursor.execute('''
 
 cursor.close() # Fecha o cursor
 banco.close() # Fecha a conexão com o Banco
+
