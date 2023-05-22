@@ -31,6 +31,7 @@ class Investimento:
             self.valor_final = self.valor_operacao - (self.taxa_corretagem + self.imposto)
 
 # -------- Funções para manipular o Banco de Dados ------
+# Cadastra uma ação
 def cadastrar_acao(codigo, data, qtd, valor_unit, tipo_operacao, tx_corretagem):
     açao = Investimento(codigo, data, qtd, valor_unit, tipo_operacao, tx_corretagem)
     açao.calcula_valor_operacao()
@@ -44,6 +45,7 @@ def cadastrar_acao(codigo, data, qtd, valor_unit, tipo_operacao, tx_corretagem):
     banco.commit()
     print('Ação Cadastrada!\n')
 
+# Mostra todas as ações
 def visualizar_açoes():
     cursor.execute("SELECT * FROM investimentos")
     resultado = cursor.fetchall()
@@ -51,6 +53,7 @@ def visualizar_açoes():
     resultado_df = pd.DataFrame(resultado, columns=colunas)
     return resultado_df
 
+# Mostra uma ação
 def vizualizar_uma_acao(cod):
     cursor.execute("SELECT * FROM investimentos WHERE codigo = ?", (cod,))
     resultado = cursor.fetchall()
@@ -58,6 +61,7 @@ def vizualizar_uma_acao(cod):
     resultado_df = pd.DataFrame(resultado, columns=colunas)
     return resultado_df
 
+# Atualiza uma ação
 def atualizar_acao(cod, atr, novo):
     cursor.execute("SELECT * FROM investimentos WHERE codigo = ?", (cod,))
     r = cursor.fetchone()
@@ -113,11 +117,13 @@ def atualizar_acao(cod, atr, novo):
         banco.commit()
     print('Ação atualizada!')
 
+# Apaga uma ação
 def deletar_acao(cod):
     cursor.execute("DELETE FROM investimentos WHERE codigo = ?", (cod,))
     banco.commit()
     print('Ação deletada!')
 
+# Busca o código das ações
 def codigo_das_acoes():
     cursor.execute("SELECT codigo FROM investimentos")
     print('Códigos disponiveis: ', end='')

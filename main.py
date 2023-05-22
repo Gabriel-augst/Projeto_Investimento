@@ -11,7 +11,7 @@ def main():
         op = input('Opção: ')
         # Cadastrar uma ação
         if op == '1':
-            codigo = input('Digite o código da ação: ')
+            codigo = input('Digite o código da ação: ').upper()
             data = input('Digite a data da operação: ')
             qtd = int(input('Digite a quantidade que você deseja comprar: '))
             valor_unit = float(input('Digite o valor unitário dessa ação: '))
@@ -24,7 +24,7 @@ def main():
         # Mostrar uma ação
         elif op == '3':
             codigo_das_acoes()
-            cod_acao = input('Digite o código da ação que deseja vizualizar: ')
+            cod_acao = input('Digite o código da ação que deseja vizualizar: ').upper()
             print(f'\n{vizualizar_uma_acao(cod_acao)}\n')
         # Atualizar as informações de uma ação
         elif op == '4':
@@ -37,10 +37,10 @@ def main():
         # Deletar uma ação
         elif op == '5':
             codigo_das_acoes()
-            cod_acao = input('Digite o código da ação que deseja apagar: ')
+            cod_acao = input('Digite o código da ação que deseja apagar: ').upper()
             deletar_acao(cod_acao)
         
-        opcao2 = input('Digite \'S\' para continuar ou \'N\' para parar: ')
+        opcao2 = input('Deseja continuar? (S-Sim, N-Não): ')
         if opcao2.upper() == 'S':
             os.system('clear')
         elif opcao2.upper() == 'N':
