@@ -17,28 +17,28 @@ def main():
             valor_unit = float(input('Digite o valor unitário dessa ação: '))
             tipo_operacao = input('Digite o tipo da operação(Compra/Venda): ').lower()
             tx_corretagem = float(input('Digite o valor da taxa de corretagem: '))
-            cadastrar_acao(codigo, data, qtd, valor_unit, tipo_operacao, tx_corretagem)
+            cadastrar_açao(codigo, data, qtd, valor_unit, tipo_operacao, tx_corretagem)
         # Mostrar todas as ações cadastradas
         elif op == '2':
             print(f'\n{visualizar_açoes()}\n')
         # Mostrar uma ação
         elif op == '3':
-            codigo_das_acoes()
+            codigo_das_açoes()
             cod_acao = input('Digite o código da ação que deseja vizualizar: ').upper()
-            print(f'\n{vizualizar_uma_acao(cod_acao)}\n')
+            print(f'\n{visualizar_uma_açao(cod_acao)}\n')
         # Atualizar as informações de uma ação
         elif op == '4':
-            codigo_das_acoes()
+            codigo_das_açoes()
             cod_acao = input('Digite o código da ação que deseja atualizar: ')
             print('Qual informação deseja mudar?')
             atributo = input('1-Código\n2-Data\n3-Quantidade\n4-Valor unitário\n5-Tipo da operação\n6-Taxa de corretagem\n')
             novo_valor = input('Digite o novo valor: ')
-            atualizar_acao(cod_acao, atributo, novo_valor)
+            atualizar_açao(cod_acao, atributo, novo_valor)
         # Deletar uma ação
         elif op == '5':
-            codigo_das_acoes()
+            codigo_das_açoes()
             cod_acao = input('Digite o código da ação que deseja apagar: ').upper()
-            deletar_acao(cod_acao)
+            deletar_açao(cod_acao)
         
         opcao2 = input('Deseja continuar? (S-Sim, N-Não): ')
         if opcao2.upper() == 'S':

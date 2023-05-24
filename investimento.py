@@ -17,6 +17,7 @@ class Investimento:
         self.valor_operacao = None
         self.imposto = None
         self.valor_final = None
+        self.preco_medio = None
 
     def calcula_valor_operacao(self):
         self.valor_operacao = self.quantidade * self.valor_unitario
@@ -30,18 +31,41 @@ class Investimento:
         elif self.compra_venda == 'venda':
             self.valor_final = self.valor_operacao - (self.taxa_corretagem + self.imposto)
 
+    def calcula_preco_medio(self):
+        cursor.execute("SELECT * FROM investimentos")
+        if len(cursor.fetchall()) <= 0:
+            self.preco_medio = self.valor_final / self.quantidade
+        else:
+            qtd_ant_total, pm_anterior = busca_valores_banco()
+            if self.compra_venda == 'compra':
+                self.preco_medio = (qtd_ant_total*pm_anterior + self.valor_final) / (qtd_ant_total+self.quantidade)
+            elif self.compra_venda == 'venda':
+                self.preco_medio = pm_anterior
+
+def busca_valores_banco():
+    # Essa função deve determinar a soma das quantidades da ações anteriores e buscar o preço médio da ação anterior
+    cursor.execute("SELECT * FROM investimentos")
+    r = cursor.fetchall()
+    qtd_total = 0
+    for i in range(len(r)):
+        if r[i][4] == 'compra':
+            qtd_total += r[i][2]
+        elif r[i][4] == 'venda':
+            qtd_total -= r[i][2]
+    return qtd_total, r[len(r)-1][9]
+
 # -------- Funções para manipular o Banco de Dados ------
 # Cadastra uma ação
-def cadastrar_acao(codigo, data, qtd, valor_unit, tipo_operacao, tx_corretagem):
+def cadastrar_açao(codigo, data, qtd, valor_unit, tipo_operacao, tx_corretagem):
     açao = Investimento(codigo, data, qtd, valor_unit, tipo_operacao, tx_corretagem)
     açao.calcula_valor_operacao()
     açao.calcula_imposto()
     açao.calcula_valor_final()
-    
+    açao.calcula_preco_medio()
     cursor.execute('''
-            INSERT INTO investimentos (codigo, data, quantidade, valor_unit, compra_venda, valor_operacao, tx_corretagem, tx_imposto, valor_final)
-            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (açao.codigo, açao.data, açao.quantidade, açao.valor_unitario, açao.compra_venda, açao.valor_operacao, açao.taxa_corretagem, açao.imposto, açao.valor_final))
+            INSERT INTO investimentos (codigo, data, quantidade, valor_unit, compra_venda, valor_operacao, tx_corretagem, tx_imposto, valor_final, preco_medio)
+            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (açao.codigo, açao.data, açao.quantidade, açao.valor_unitario, açao.compra_venda, açao.valor_operacao, açao.taxa_corretagem, round(açao.imposto, 2), round(açao.valor_final, 2), round(açao.preco_medio, 2)))
     banco.commit()
     print('Ação Cadastrada!\n')
 
@@ -49,20 +73,26 @@ def cadastrar_acao(codigo, data, qtd, valor_unit, tipo_operacao, tx_corretagem):
 def visualizar_açoes():
     cursor.execute("SELECT * FROM investimentos")
     resultado = cursor.fetchall()
-    colunas = ['Código', 'Data', 'quantidade', 'Valor unitário',  'Compra/Venda', 'Valor da operação', 'Corretagem', 'Imposto', 'Valor final']
-    resultado_df = pd.DataFrame(resultado, columns=colunas)
-    return resultado_df
+    if len(resultado) == 0:
+        return 'Nenhuma ação cadastrada'
+    else:
+        colunas = ['Código', 'Data', 'quantidade', 'Valor unitário',  'Compra/Venda', 'Valor da operação', 'Corretagem', 'Imposto', 'Valor final', 'Preço Médio']
+        resultado_df = pd.DataFrame(resultado, columns=colunas)
+        return resultado_df
 
 # Mostra uma ação
-def vizualizar_uma_acao(cod):
+def visualizar_uma_açao(cod):
     cursor.execute("SELECT * FROM investimentos WHERE codigo = ?", (cod,))
     resultado = cursor.fetchall()
-    colunas = ['Código', 'Data', 'quantidade', 'Valor unitário',  'Compra/Venda', 'Valor da operação', 'Corretagem', 'Imposto', 'Valor final']
-    resultado_df = pd.DataFrame(resultado, columns=colunas)
-    return resultado_df
+    if len(resultado) == 0:
+        return 'Nenhuma ação cadastrada'
+    else:
+        colunas = ['Código', 'Data', 'quantidade', 'Valor unitário',  'Compra/Venda', 'Valor da operação', 'Corretagem', 'Imposto', 'Valor final', 'Preço Médio']
+        resultado_df = pd.DataFrame(resultado, columns=colunas)
+        return resultado_df
 
 # Atualiza uma ação
-def atualizar_acao(cod, atr, novo):
+def atualizar_açao(cod, atr, novo):
     cursor.execute("SELECT * FROM investimentos WHERE codigo = ?", (cod,))
     r = cursor.fetchone()
     
@@ -118,18 +148,16 @@ def atualizar_acao(cod, atr, novo):
     print('Ação atualizada!')
 
 # Apaga uma ação
-def deletar_acao(cod):
+def deletar_açao(cod):
     cursor.execute("DELETE FROM investimentos WHERE codigo = ?", (cod,))
     banco.commit()
     print('Ação deletada!')
 
 # Busca o código das ações
-def codigo_das_acoes():
+def codigo_das_açoes():
     cursor.execute("SELECT codigo FROM investimentos")
     print('Códigos disponiveis: ', end='')
-    while True:
-        resultado = cursor.fetchone()
-        if resultado == None:
-            break
-        print(resultado[0], end=' ')
+    resultado = cursor.fetchall()
+    for i in resultado:
+        print(i[0], end=' ')
     print()

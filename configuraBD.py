@@ -14,10 +14,10 @@ cursor.execute('''
             valor_operacao real,
             tx_corretagem real,
             tx_imposto real,
-            valor_final real
+            valor_final real,
+            preco_medio real
         )
 ''')
 
 cursor.close() # Fecha o cursor
 banco.close() # Fecha a conexão com o Banco
-
