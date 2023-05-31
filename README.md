@@ -1,4 +1,4 @@
-# História 3
-Tarefa 01: Criar o campo na tabela que armazenará os valores do preço médio
-Tarefa 02: Adicionar à classe Investimento o atributo preço médio
-Tarefa 03: Criar o método que calcula o preço médio
+# A fazer:
+Subir para o repositório remoto as histórias 3 e 4. (Feito)
+
+Obs! Não mandar para o repositório local o arquivo 'testes.py'

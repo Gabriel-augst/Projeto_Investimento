@@ -15,7 +15,7 @@ cursor.execute('''
             tx_corretagem real,
             tx_imposto real,
             valor_final real,
-            preco_medio real
+            id integer
         )
 ''')
 

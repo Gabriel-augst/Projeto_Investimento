@@ -1,4 +1,5 @@
 import sqlite3
+from datetime import *
 import pandas as pd
 
 # Conexão com o banco SQLite
@@ -17,7 +18,6 @@ class Investimento:
         self.valor_operacao = None
         self.imposto = None
         self.valor_final = None
-        self.preco_medio = None
 
     def calcula_valor_operacao(self):
         self.valor_operacao = self.quantidade * self.valor_unitario
@@ -31,76 +31,131 @@ class Investimento:
         elif self.compra_venda == 'venda':
             self.valor_final = self.valor_operacao - (self.taxa_corretagem + self.imposto)
 
-    def calcula_preco_medio(self):
-        cursor.execute("SELECT * FROM investimentos")
-        if len(cursor.fetchall()) <= 0:
-            self.preco_medio = self.valor_final / self.quantidade
-        else:
-            qtd_ant_total, pm_anterior = busca_valores_banco()
-            if self.compra_venda == 'compra':
-                self.preco_medio = (qtd_ant_total*pm_anterior + self.valor_final) / (qtd_ant_total+self.quantidade)
-            elif self.compra_venda == 'venda':
-                self.preco_medio = pm_anterior
+# --------Funções auxiliares----------
+# Determina o lucro ou prejuízo na venda de uma ação
+def lucro_prejuizo(r):
+    if r[4] == 'compra':
+        return '-'
+    elif r[4] == 'venda':
+        lp = r[8] - (r[2]*r[9])
+        if lp > 0:
+            return 'Lucro'
+        elif lp < 0:
+            return 'Prejuízo'
 
-def busca_valores_banco():
-    # Essa função deve determinar a soma das quantidades da ações anteriores e buscar o preço médio da ação anterior
-    cursor.execute("SELECT * FROM investimentos")
-    r = cursor.fetchall()
-    qtd_total = 0
+# Calcula o preço médio das ações e determinar se as ações de venda resultaram em lucro ou prejuízo
+def preco_medio(r):
+    qtd_ant_total = 0 # Quantidade anterior total
     for i in range(len(r)):
-        if r[i][4] == 'compra':
-            qtd_total += r[i][2]
-        elif r[i][4] == 'venda':
-            qtd_total -= r[i][2]
-    return qtd_total, r[len(r)-1][9]
+        if i == 0:
+            pm = r[i][8] / r[i][2]
+            r[i].append(round(pm, 2))
+            r[i].append(lucro_prejuizo(r[i]))
+            qtd_ant_total += r[i][2]
+        else:
+            if r[i][4] == 'compra':
+                pm = (qtd_ant_total*r[i-1][9] + r[i][8]) / (qtd_ant_total+r[i][2])
+                r[i].append(round(pm, 2))
+                r[i].append(lucro_prejuizo(r[i]))
+                qtd_ant_total += r[i][2]
+            elif r[i][4] == 'venda':
+                pm = r[i-1][9]
+                r[i].append(round(pm, 2))
+                r[i].append(lucro_prejuizo(r[i]))
+                qtd_ant_total -= r[i][2]
+
+# Organiza as ações por data da mais atual até a mais antiga
+def organiza_datas(d):
+    #organiza as datas
+    for i in range(len(d)):
+        for j in range(i+1, len(d)):
+            if d[i][1] > d[j][1]:
+                d[i], d[j] = d[j], d[i]
+    #Transforma as datas em string
+    for i in d:
+        i[1] = i[1].strftime('%d/%m/%Y')
+
+# Mostra os índicies das ações na ordem em que foram cadastradas
+def visualizar_ids():
+    cursor.execute("SELECT id, codigo, data FROM investimentos")
+    resultado = []
+    while True:
+        r = cursor.fetchone()
+        if r == None:
+            break
+        r = list(r)
+        resultado.append(r)
+    print(pd.DataFrame(resultado, columns=['Índice', 'Código', 'Data']))
+
+# Quando uma determinada ação é deletada, atualiza os índicies das ações posteriores
+def atualiza_ids(id):
+    cursor.execute("SELECT id FROM investimentos")
+    r = cursor.fetchall()
+    for i in r:
+        if i[0] > id:
+            cursor.execute("UPDATE investimentos SET id = ? WHERE id = ?", (i[0]-1, i[0]))
+            banco.commit()
+
 
 # -------- Funções para manipular o Banco de Dados ------
 # Cadastra uma ação
 def cadastrar_açao(codigo, data, qtd, valor_unit, tipo_operacao, tx_corretagem):
+    cursor.execute("SELECT * FROM investimentos")
+    id = len(cursor.fetchall())
     açao = Investimento(codigo, data, qtd, valor_unit, tipo_operacao, tx_corretagem)
     açao.calcula_valor_operacao()
     açao.calcula_imposto()
     açao.calcula_valor_final()
-    açao.calcula_preco_medio()
     cursor.execute('''
-            INSERT INTO investimentos (codigo, data, quantidade, valor_unit, compra_venda, valor_operacao, tx_corretagem, tx_imposto, valor_final, preco_medio)
+            INSERT INTO investimentos (codigo, data, quantidade, valor_unit, compra_venda, valor_operacao, tx_corretagem, tx_imposto, valor_final, id)
             VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (açao.codigo, açao.data, açao.quantidade, açao.valor_unitario, açao.compra_venda, açao.valor_operacao, açao.taxa_corretagem, round(açao.imposto, 2), round(açao.valor_final, 2), round(açao.preco_medio, 2)))
+    ''', (açao.codigo, açao.data, açao.quantidade, açao.valor_unitario, açao.compra_venda, açao.valor_operacao, açao.taxa_corretagem, round(açao.imposto, 2), round(açao.valor_final, 2), id))
     banco.commit()
     print('Ação Cadastrada!\n')
 
-# Mostra todas as ações
-def visualizar_açoes():
-    cursor.execute("SELECT * FROM investimentos")
-    resultado = cursor.fetchall()
-    if len(resultado) == 0:
-        return 'Nenhuma ação cadastrada'
-    else:
-        colunas = ['Código', 'Data', 'quantidade', 'Valor unitário',  'Compra/Venda', 'Valor da operação', 'Corretagem', 'Imposto', 'Valor final', 'Preço Médio']
-        resultado_df = pd.DataFrame(resultado, columns=colunas)
-        return resultado_df
+# Mostra todas as ações ordenadas por data em ordem decrescente
+def visualizar_açoes_ordenado():
+    cursor.execute("SELECT codigo, data, quantidade, valor_unit, compra_venda, valor_operacao, tx_corretagem, tx_imposto, valor_final FROM investimentos")
+    resultado = []
+    while True:
+        r = cursor.fetchone()
+        if r == None:
+            break
+        r = list(r)
+        r[1] = datetime.strptime(r[1], '%d/%m/%Y').date()
+        resultado.append(r)
+    preco_medio(resultado)
+    organiza_datas(resultado)
+    colunas = ['Código', 'Data', 'quantidade', 'Valor unitário',  'Compra/Venda', 'Valor da operação', 'Corretagem', 'Imposto', 'Valor final', 'Preço Médio', 'Lucro/Prejuízo']
+    print(pd.DataFrame(resultado, columns=colunas))
 
 # Mostra uma ação
-def visualizar_uma_açao(cod):
-    cursor.execute("SELECT * FROM investimentos WHERE codigo = ?", (cod,))
-    resultado = cursor.fetchall()
-    if len(resultado) == 0:
-        return 'Nenhuma ação cadastrada'
-    else:
-        colunas = ['Código', 'Data', 'quantidade', 'Valor unitário',  'Compra/Venda', 'Valor da operação', 'Corretagem', 'Imposto', 'Valor final', 'Preço Médio']
-        resultado_df = pd.DataFrame(resultado, columns=colunas)
-        return resultado_df
+def visualizar_uma_açao(id):
+    l = []
+    cursor.execute("SELECT codigo, data, quantidade, valor_unit, compra_venda, valor_operacao, tx_corretagem, tx_imposto, valor_final FROM investimentos")
+    resultado = []
+    while True:
+        r = cursor.fetchone()
+        if r == None:
+            break
+        r = list(r)
+        #r[1] = datetime.strptime(r[1], '%d/%m/%Y').date()
+        resultado.append(r)
+    preco_medio(resultado)
+    l.append(resultado[id])
+    colunas = ['Código', 'Data', 'quantidade', 'Valor unitário',  'Compra/Venda', 'Valor da operação', 'Corretagem', 'Imposto', 'Valor final', 'Preço Médio', 'Lucro/Prejuízo']
+    print(pd.DataFrame(l, columns=colunas))
 
 # Atualiza uma ação
-def atualizar_açao(cod, atr, novo):
-    cursor.execute("SELECT * FROM investimentos WHERE codigo = ?", (cod,))
+def atualizar_açao(id, atr, novo):
+    cursor.execute("SELECT * FROM investimentos WHERE id = ?", (id,))
     r = cursor.fetchone()
     
     if atr == '1':
-        cursor.execute("UPDATE investimentos SET codigo = ? WHERE codigo = ?", (novo, cod))
+        cursor.execute("UPDATE investimentos SET codigo = ? WHERE id = ?", (novo, id))
         banco.commit()
     elif atr == '2':
-        cursor.execute("UPDATE investimentos SET data = ? WHERE codigo = ?", (novo, cod))
+        cursor.execute("UPDATE investimentos SET data = ? WHERE id = ?", (novo, id))
         banco.commit()
     elif atr == '3':
         qtd = int(novo)
@@ -110,10 +165,10 @@ def atualizar_açao(cod, atr, novo):
             vlr_final = vlr_operacao + (r[6] + imposto)
         elif r[4] == 'venda':
             vlr_final = vlr_operacao - (r[6] + imposto)
-        cursor.execute("UPDATE investimentos SET quantidade = ? WHERE codigo = ?", (qtd, cod))
-        cursor.execute("UPDATE investimentos SET valor_operacao = ? WHERE codigo = ?", (vlr_operacao, cod))
-        cursor.execute("UPDATE investimentos SET tx_imposto = ? WHERE codigo = ?", (imposto, cod))
-        cursor.execute("UPDATE investimentos SET valor_final = ? WHERE codigo = ?", (vlr_final, cod))
+        cursor.execute("UPDATE investimentos SET quantidade = ? WHERE id = ?", (qtd, id))
+        cursor.execute("UPDATE investimentos SET valor_operacao = ? WHERE id = ?", (vlr_operacao, id))
+        cursor.execute("UPDATE investimentos SET tx_imposto = ? WHERE id = ?", (imposto, id))
+        cursor.execute("UPDATE investimentos SET valor_final = ? WHERE id = ?", (vlr_final, id))
         banco.commit()
     elif atr == '4':
         vlr_unit = float(novo)
@@ -123,18 +178,18 @@ def atualizar_açao(cod, atr, novo):
             vlr_final = vlr_operacao + (r[6] + imposto)
         elif r[4] == 'venda':
             vlr_final = vlr_operacao - (r[6] + imposto)
-        cursor.execute("UPDATE investimentos SET valor_unit = ? WHERE codigo = ?", (vlr_unit, cod))
-        cursor.execute("UPDATE investimentos SET valor_operacao = ? WHERE codigo = ?", (vlr_operacao, cod))
-        cursor.execute("UPDATE investimentos SET tx_imposto = ? WHERE codigo = ?", (imposto, cod))
-        cursor.execute("UPDATE investimentos SET valor_final = ? WHERE codigo = ?", (vlr_final, cod))
+        cursor.execute("UPDATE investimentos SET valor_unit = ? WHERE id = ?", (vlr_unit, id))
+        cursor.execute("UPDATE investimentos SET valor_operacao = ? WHERE id = ?", (vlr_operacao, id))
+        cursor.execute("UPDATE investimentos SET tx_imposto = ? WHERE id = ?", (imposto, id))
+        cursor.execute("UPDATE investimentos SET valor_final = ? WHERE id = ?", (vlr_final, id))
         banco.commit()
     elif atr == '5':
         if novo.lower() == 'compra':
             vlr_final = r[5] + (r[6] + r[7])
         elif novo.lower() == 'venda':
             vlr_final = r[5] - (r[6] + r[7])
-        cursor.execute("UPDATE investimentos SET compra_venda = ? WHERE codigo = ?", (novo, cod))
-        cursor.execute("UPDATE investimentos SET valor_final = ? WHERE codigo = ?", (vlr_final, cod))
+        cursor.execute("UPDATE investimentos SET compra_venda = ? WHERE id = ?", (novo, id))
+        cursor.execute("UPDATE investimentos SET valor_final = ? WHERE id = ?", (vlr_final, id))
         banco.commit()
     elif atr == '6':
         tx_corretagem = float(novo)
@@ -142,22 +197,14 @@ def atualizar_açao(cod, atr, novo):
             vlr_final = r[5] + (tx_corretagem + r[7])
         elif r[4] == 'venda':
             vlr_final = r[5] - (tx_corretagem + r[7])
-        cursor.execute("UPDATE investimentos SET tx_corretagem = ? WHERE codigo = ?", (tx_corretagem, cod))
-        cursor.execute("UPDATE investimentos SET valor_final = ? WHERE codigo = ?", (vlr_final, cod))
+        cursor.execute("UPDATE investimentos SET tx_corretagem = ? WHERE id = ?", (tx_corretagem, id))
+        cursor.execute("UPDATE investimentos SET valor_final = ? WHERE id = ?", (vlr_final, id))
         banco.commit()
     print('Ação atualizada!')
 
 # Apaga uma ação
-def deletar_açao(cod):
-    cursor.execute("DELETE FROM investimentos WHERE codigo = ?", (cod,))
+def deletar_açao(id):
+    cursor.execute("DELETE FROM investimentos WHERE id = ?", (id,))
     banco.commit()
+    atualiza_ids(id)
     print('Ação deletada!')
-
-# Busca o código das ações
-def codigo_das_açoes():
-    cursor.execute("SELECT codigo FROM investimentos")
-    print('Códigos disponiveis: ', end='')
-    resultado = cursor.fetchall()
-    for i in resultado:
-        print(i[0], end=' ')
-    print()
