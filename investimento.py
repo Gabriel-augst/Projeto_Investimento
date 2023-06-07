@@ -38,10 +38,7 @@ def lucro_prejuizo(r):
         return '-'
     elif r[4] == 'venda':
         lp = r[8] - (r[2]*r[9])
-        if lp > 0:
-            return 'Lucro'
-        elif lp < 0:
-            return 'Prejuízo'
+        return lp
 
 # Calcula o preço médio das ações e determinar se as ações de venda resultaram em lucro ou prejuízo
 def preco_medio(r):
@@ -124,27 +121,25 @@ def visualizar_açoes_ordenado():
         r = list(r)
         r[1] = datetime.strptime(r[1], '%d/%m/%Y').date()
         resultado.append(r)
-    preco_medio(resultado)
     organiza_datas(resultado)
-    colunas = ['Código', 'Data', 'quantidade', 'Valor unitário',  'Compra/Venda', 'Valor da operação', 'Corretagem', 'Imposto', 'Valor final', 'Preço Médio', 'Lucro/Prejuízo']
+    colunas = ['Código', 'Data', 'quantidade', 'Valor unitário',  'Compra/Venda', 'Valor da operação', 'Corretagem', 'Imposto', 'Valor final']
     print(pd.DataFrame(resultado, columns=colunas))
 
-# Mostra uma ação
-def visualizar_uma_açao(id):
-    l = []
-    cursor.execute("SELECT codigo, data, quantidade, valor_unit, compra_venda, valor_operacao, tx_corretagem, tx_imposto, valor_final FROM investimentos")
+# Detalhar um ativo
+def detalhar_açao(codigo):
+    cursor.execute("SELECT codigo, data, quantidade, valor_unit, compra_venda, valor_operacao, tx_corretagem, tx_imposto, valor_final FROM investimentos WHERE codigo = ?", (codigo,))
     resultado = []
     while True:
         r = cursor.fetchone()
         if r == None:
             break
         r = list(r)
-        #r[1] = datetime.strptime(r[1], '%d/%m/%Y').date()
+        r[1] = datetime.strptime(r[1], '%d/%m/%Y').date()
         resultado.append(r)
+    organiza_datas(resultado)
     preco_medio(resultado)
-    l.append(resultado[id])
     colunas = ['Código', 'Data', 'quantidade', 'Valor unitário',  'Compra/Venda', 'Valor da operação', 'Corretagem', 'Imposto', 'Valor final', 'Preço Médio', 'Lucro/Prejuízo']
-    print(pd.DataFrame(l, columns=colunas))
+    print(pd.DataFrame(resultado, columns=colunas))
 
 # Atualiza uma ação
 def atualizar_açao(id, atr, novo):
