@@ -96,7 +96,7 @@ def atualiza_ids(id):
 
 # -------- Funções para manipular o Banco de Dados ------
 # Cadastra uma ação
-def cadastrar_açao(codigo, data, qtd, valor_unit, tipo_operacao, tx_corretagem):
+def cadastrar_operaçao(codigo, data, qtd, valor_unit, tipo_operacao, tx_corretagem):
     cursor.execute("SELECT * FROM investimentos")
     id = len(cursor.fetchall())
     açao = Investimento(codigo, data, qtd, valor_unit, tipo_operacao, tx_corretagem)
@@ -111,7 +111,7 @@ def cadastrar_açao(codigo, data, qtd, valor_unit, tipo_operacao, tx_corretagem)
     print('Ação Cadastrada!\n')
 
 # Mostra todas as ações ordenadas por data em ordem decrescente
-def visualizar_açoes_ordenado():
+def visualizar_operaçoes_ordenado():
     cursor.execute("SELECT codigo, data, quantidade, valor_unit, compra_venda, valor_operacao, tx_corretagem, tx_imposto, valor_final FROM investimentos")
     resultado = []
     while True:
@@ -126,7 +126,7 @@ def visualizar_açoes_ordenado():
     print(pd.DataFrame(resultado, columns=colunas))
 
 # Detalhar um ativo
-def detalhar_açao(codigo):
+def detalhar_ativo(codigo):
     cursor.execute("SELECT codigo, data, quantidade, valor_unit, compra_venda, valor_operacao, tx_corretagem, tx_imposto, valor_final FROM investimentos WHERE codigo = ?", (codigo,))
     resultado = []
     while True:
@@ -142,7 +142,7 @@ def detalhar_açao(codigo):
     print(pd.DataFrame(resultado, columns=colunas))
 
 # Atualiza uma ação
-def atualizar_açao(id, atr, novo):
+def atualizar_ativo(id, atr, novo):
     cursor.execute("SELECT * FROM investimentos WHERE id = ?", (id,))
     r = cursor.fetchone()
     
@@ -198,7 +198,7 @@ def atualizar_açao(id, atr, novo):
     print('Ação atualizada!')
 
 # Apaga uma ação
-def deletar_açao(id):
+def deletar_ativo(id):
     cursor.execute("DELETE FROM investimentos WHERE id = ?", (id,))
     banco.commit()
     atualiza_ids(id)
