@@ -48,6 +48,25 @@ def lucro_total_do_ativo(r):
             soma += i[10]
     return soma
 
+#Calcula o lucro da carteira
+def lucro_total_carteira():
+    codigos = ['ITSA4', 'WEGE3']
+    total = 0
+    for i in codigos:
+        cursor.execute("SELECT codigo, data, quantidade, valor_unit, compra_venda, valor_operacao, tx_corretagem, tx_imposto, valor_final FROM investimentos WHERE codigo = ?", (i,))
+        resultado = []
+        while True:
+            r = cursor.fetchone()
+            if r == None:
+                break
+            r = list(r)
+            r[1] = datetime.strptime(r[1], '%d/%m/%Y').date()
+            resultado.append(r)
+        organiza_datas(resultado)
+        preco_medio(resultado)
+        total += lucro_total_do_ativo(resultado)
+    return total
+
 # Calcula o preço médio das ações e determinar se as ações de venda resultaram em lucro ou prejuízo
 def preco_medio(r):
     qtd_ant_total = 0 # Quantidade anterior total

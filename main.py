@@ -21,6 +21,7 @@ def main():
         # Mostrar todas as ações cadastradas
         elif op == '2':
             visualizar_operaçoes_ordenado()
+            print(f'\nLucro/Prejuízo da carteira: {lucro_total_carteira()}')
         # Detalhar uma ação
         elif op == '3':
             cod_acao = input('Digite o código do ativo que deseja detalhar: ').upper()
