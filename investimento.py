@@ -35,10 +35,18 @@ class Investimento:
 # Determina o lucro ou prejuízo na venda de uma ação
 def lucro_prejuizo(r):
     if r[4] == 'compra':
-        return '-'
+        return ' '
     elif r[4] == 'venda':
         lp = r[8] - (r[2]*r[9])
         return lp
+
+#Calcula o lucro total por ativo
+def lucro_total_do_ativo(r):
+    soma = 0
+    for i in r:
+        if i[10] != ' ':
+            soma += i[10]
+    return soma
 
 # Calcula o preço médio das ações e determinar se as ações de venda resultaram em lucro ou prejuízo
 def preco_medio(r):
@@ -58,7 +66,7 @@ def preco_medio(r):
             elif r[i][4] == 'venda':
                 pm = r[i-1][9]
                 r[i].append(round(pm, 2))
-                r[i].append(lucro_prejuizo(r[i]))
+                r[i].append(round(lucro_prejuizo(r[i]), 2))
                 qtd_ant_total -= r[i][2]
 
 # Organiza as ações por data da mais atual até a mais antiga
@@ -138,8 +146,9 @@ def detalhar_ativo(codigo):
         resultado.append(r)
     organiza_datas(resultado)
     preco_medio(resultado)
+    lucroTotalAtivo = lucro_total_do_ativo(resultado)
     colunas = ['Código', 'Data', 'quantidade', 'Valor unitário',  'Compra/Venda', 'Valor da operação', 'Corretagem', 'Imposto', 'Valor final', 'Preço Médio', 'Lucro/Prejuízo']
-    print(pd.DataFrame(resultado, columns=colunas))
+    print(f'{pd.DataFrame(resultado, columns=colunas)}\n\nLucro total de {codigo}: {lucroTotalAtivo}')
 
 # Atualiza uma ação
 def atualizar_ativo(id, atr, novo):
